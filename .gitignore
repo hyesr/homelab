@@ -1,0 +1,27 @@
+# Secrets and credentials (never commit these)
+*.pem
+*.key
+*.p12
+.env
+.env.*
+secrets/
+*-secret.yaml
+*.secret.yaml
+*.agekey
+kubeconfig
+*.kubeconfig
+.kube/
+
+# Python tooling
+.venv/
+__pycache__/
+
+# Local AI assistant context (not part of the project)
+CLAUDE.md
+.claude/
+
+# Editors and OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
