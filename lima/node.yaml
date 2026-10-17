@@ -1,0 +1,21 @@
+---
+# Plain Ubuntu LTS node for the homelab cluster.
+# Lima only provides the VM. Kubernetes is installed on it by Ansible, so the
+# same playbooks can later run on real hardware (a mini PC or a VPS).
+#
+# Used by scripts/vms.sh, which adds `--network lima:user-v2` so the VMs can
+# reach each other.
+minimumLimaVersion: 2.0.0
+base: template:_images/ubuntu-26.04
+
+cpus: 2
+memory: 2GiB
+disk: 20GiB
+
+# No host directories are shared with the nodes.
+mounts: []
+
+# K3s ships its own containerd, so the one Lima can install is not needed.
+containerd:
+  system: false
+  user: false
