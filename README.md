@@ -18,9 +18,10 @@ A three-node Kubernetes cluster on a Mac mini (M4, 16 GB), built entirely from c
 ## Roadmap
 
 - [x] Three Lima VMs created with one command
-- [ ] CI: lint and validate every push
+- [x] CI: lint every push
 - [ ] K3s installed on them with Ansible
 - [ ] Flux bootstrapped and syncing this repository
+- [ ] CI: validate the Kubernetes manifests
 - [ ] cert-manager and the internal CA
 - [ ] Homepage dashboard
 - [ ] Reach the apps from the LAN
@@ -44,6 +45,18 @@ make down      # delete them
 ```
 
 Each VM runs Ubuntu 26.04 with 2 vCPUs, 2 GiB of RAM and a 20 GiB disk that only takes the space it uses. The VMs share Lima's `user-v2` network, so they reach each other by name (`lima-homelab-cp.internal`). `make help` lists every target.
+
+## Development
+
+Every pull request runs `make lint` in GitHub Actions. Run the same checks locally before pushing:
+
+```bash
+brew install shellcheck
+python3.14 -m venv .venv          # yamllint needs Python 3.10 or newer; macOS's python3 is 3.9
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+make lint                         # yamllint and shellcheck; no output means no problems
+```
 
 ## License
 
