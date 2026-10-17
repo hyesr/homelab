@@ -1,0 +1,2 @@
+# Tooling used by `make lint` and CI. Pinned exactly; Dependabot proposes updates.
+yamllint==1.38.0
