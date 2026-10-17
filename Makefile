@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help vms start stop down status
+.PHONY: help vms start stop down status lint
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | \
@@ -22,3 +22,7 @@ down: ## Delete the VMs (this destroys the cluster and its data)
 
 status: ## Show the VMs
 	bash scripts/vms.sh status
+
+lint: ## Lint YAML and shell scripts
+	yamllint .
+	shellcheck scripts/*.sh
