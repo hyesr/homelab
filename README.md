@@ -17,7 +17,7 @@ A three-node Kubernetes cluster on a Mac mini (M4, 16 GB), built entirely from c
 
 ## Roadmap
 
-- [ ] Three Lima VMs created with one command
+- [x] Three Lima VMs created with one command
 - [ ] CI: lint and validate every push
 - [ ] K3s installed on them with Ansible
 - [ ] Flux bootstrapped and syncing this repository
@@ -31,9 +31,19 @@ A three-node Kubernetes cluster on a Mac mini (M4, 16 GB), built entirely from c
 - [ ] Gateway API instead of Ingress
 - [ ] A kubeadm-based Kubernetes cluster built the same way, to compare with K3s
 
-## Usage
+## Getting started
 
-Everything runs through the Makefile. `make help` lists the available targets.
+Requirements: macOS on Apple Silicon with [Lima](https://lima-vm.io) 2.0 or newer (`brew install lima`).
+
+```bash
+make vms       # create the three VMs (or start them if they exist)
+make status    # list them
+make stop      # stop them, keeping their state
+make start     # start them again
+make down      # delete them
+```
+
+Each VM runs Ubuntu 26.04 with 2 vCPUs, 2 GiB of RAM and a 20 GiB disk that only takes the space it uses. The VMs share Lima's `user-v2` network, so they reach each other by name (`lima-homelab-cp.internal`). `make help` lists every target.
 
 ## License
 
