@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help vms start stop down status lint
+.PHONY: help vms start stop down status ssh-config ping lint
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | \
@@ -23,6 +23,13 @@ down: ## Delete the VMs (this destroys the cluster and its data)
 status: ## Show the VMs
 	bash scripts/vms.sh status
 
-lint: ## Lint YAML and shell scripts
+ssh-config: ## Regenerate the SSH config used by Ansible
+	bash scripts/vms.sh ssh-config
+
+ping: ssh-config ## Check that Ansible can reach every node
+	cd ansible && ansible all -m ansible.builtin.ping
+
+lint: ## Lint YAML, Ansible and shell scripts
 	yamllint .
+	cd ansible && ansible-lint
 	shellcheck scripts/*.sh

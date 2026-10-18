@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Manage the Lima VMs that make up the homelab cluster.
 #
-# Usage: scripts/vms.sh {up|start|stop|down|status}
+# Usage: scripts/vms.sh {up|start|stop|down|status|ssh-config}
 #
 # Optional environment overrides (only used when an instance is created):
 #   CPUS=4 MEMORY=4 DISK=30     (MEMORY and DISK are in GiB)
@@ -10,9 +10,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE="${ROOT}/lima/node.yaml"
+SSH_CONFIG="${ROOT}/ansible/.ssh_config"
 NETWORK="lima:user-v2"
 
 # The first node runs the control plane, the others are workers.
+# Keep in sync with ansible/inventory/hosts.yml (Lima instance name == inventory name).
 NODES=(homelab-cp homelab-w1 homelab-w2)
 
 log() { echo "==> $*"; }
@@ -49,6 +51,23 @@ cmd_up() {
         ${flags[@]+"${flags[@]}"} "$TEMPLATE"
     fi
   done
+  cmd_ssh_config
+}
+
+# Ansible reaches the VMs over SSH. Lima keeps an ssh.config per instance (its
+# forwarded port changes whenever a VM restarts), so the file generated here only
+# *includes* those, which means it never goes stale.
+cmd_ssh_config() {
+  require_limactl
+  local node path
+  : >"$SSH_CONFIG"
+  for node in "${NODES[@]}"; do
+    instance_exists "$node" || die "instance $node does not exist, run 'up' first"
+    path="$(limactl list --format '{{.SSHConfigFile}}' "$node")"
+    echo "Include \"${path}\"" >>"$SSH_CONFIG"
+  done
+  chmod 600 "$SSH_CONFIG"
+  log "wrote ${SSH_CONFIG#"$ROOT"/}"
 }
 
 cmd_start() {
@@ -58,6 +77,7 @@ cmd_start() {
     instance_exists "$node" || die "instance $node does not exist, run 'up' first"
     limactl start --tty=false "$node"
   done
+  cmd_ssh_config
 }
 
 cmd_stop() {
@@ -79,6 +99,7 @@ cmd_down() {
       limactl delete --force "${NODES[$i]}"
     fi
   done
+  rm -f "$SSH_CONFIG"
 }
 
 cmd_status() {
@@ -92,5 +113,6 @@ case "${1:-}" in
   stop) cmd_stop ;;
   down) cmd_down ;;
   status) cmd_status ;;
-  *) die "usage: $0 {up|start|stop|down|status}" ;;
+  ssh-config) cmd_ssh_config ;;
+  *) die "usage: $0 {up|start|stop|down|status|ssh-config}" ;;
 esac

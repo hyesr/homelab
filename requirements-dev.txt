@@ -1,2 +1,4 @@
-# Tooling used by `make lint` and CI. Pinned exactly; Dependabot proposes updates.
+# Tooling used by `make lint`, `make ping` and the playbooks, and by CI. Pinned exactly; Dependabot proposes updates.
+ansible-core==2.21.5
+ansible-lint==26.10.1
 yamllint==1.38.0

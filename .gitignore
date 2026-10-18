@@ -12,6 +12,9 @@ kubeconfig
 *.kubeconfig
 .kube/
 
+# Generated locally
+ansible/.ssh_config
+
 # Python tooling
 .venv/
 __pycache__/
