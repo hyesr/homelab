@@ -12,3 +12,12 @@
   roles:
     - role: k3s
       tags: [k3s]
+
+- name: Join the K3s agents
+  hosts: k3s_agent
+  become: true
+  # One agent at a time, so an upgrade never takes every worker down together.
+  serial: 1
+  roles:
+    - role: k3s
+      tags: [k3s]

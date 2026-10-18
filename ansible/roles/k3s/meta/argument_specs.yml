@@ -25,6 +25,10 @@ argument_specs:
         type: str
         required: true
         description: Address prefix of the network the nodes use to talk to each other, for example "192.168.104.".
+      k3s_server_address:
+        type: str
+        required: true
+        description: DNS name or IP the agents use to reach the server's API. Also added to the API certificate (tls-san).
       k3s_api_port:
         type: int
         default: 6443

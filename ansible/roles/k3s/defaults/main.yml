@@ -4,6 +4,7 @@
 #   k3s_version                 the K3s release, the same on every node
 #   k3s_node_role               server or agent
 #   k3s_cluster_network_prefix  address prefix of the network the nodes share
+#   k3s_server_address          DNS name or IP of the server's API, as the agents reach it
 
 # The install script is taken from the pinned release tag instead of get.k3s.io,
 # so the script always matches the version being installed.

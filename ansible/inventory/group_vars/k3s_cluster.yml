@@ -6,3 +6,7 @@ k3s_version: v1.36.5+k3s1
 # Prefix of the addresses on the Lima "user-v2" network (VM to VM traffic).
 # Check with: limactl shell homelab-cp ip -4 addr
 k3s_cluster_network_prefix: "192.168.104."
+
+# Name the agents use to reach the server's API. On user-v2, Lima resolves
+# "lima-<instance>.internal" inside every VM. On other hardware, set a DNS name or an IP here.
+k3s_server_address: "lima-{{ groups['k3s_server'][0] }}.internal"
