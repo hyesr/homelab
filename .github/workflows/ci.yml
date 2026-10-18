@@ -16,7 +16,9 @@ concurrency:
 
 jobs:
   lint:
-    name: Lint (yamllint, shellcheck)
+    # Required by the branch ruleset on main, which matches checks by this exact name:
+    # keep it stable (the tools it runs are listed in `make lint`).
+    name: Lint
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
