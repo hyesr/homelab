@@ -1,0 +1,6 @@
+---
+k3s_node_role: server
+k3s_node_labels:
+  - homelab/role=control-plane
+# Where the kubeconfig is copied on the machine running Ansible (git-ignored).
+k3s_kubeconfig_local_path: "{{ playbook_dir }}/../.kube/homelab.yaml"

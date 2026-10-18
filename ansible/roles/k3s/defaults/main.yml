@@ -1,0 +1,19 @@
+---
+# Required and deliberately without a default (see meta/argument_specs.yml), so each has
+# one source of truth in the inventory's group_vars:
+#   k3s_version                 the K3s release, the same on every node
+#   k3s_install_script_checksum "sha256:<hash>" of that release's install.sh (change it with the version)
+#   k3s_node_role               server or agent
+#   k3s_cluster_network_prefix  address prefix of the network the nodes share
+#   k3s_server_address          DNS name or IP of the server's API, as the agents reach it
+
+# The install script is taken from the pinned release tag instead of get.k3s.io,
+# so the script always matches the version being installed.
+k3s_install_script_url: "https://raw.githubusercontent.com/k3s-io/k3s/{{ k3s_version | replace('+', '%2B') }}/install.sh"
+
+k3s_api_port: 6443
+k3s_secrets_encryption: true
+k3s_node_labels: []
+
+# When set on a server, the kubeconfig is copied to this path on the machine running Ansible.
+k3s_kubeconfig_local_path: ""

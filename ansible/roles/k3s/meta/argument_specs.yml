@@ -1,0 +1,48 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure K3s as a server or an agent
+    options:
+      k3s_version:
+        type: str
+        required: true
+        description: K3s release to install, for example v1.36.5+k3s1.
+      k3s_node_role:
+        type: str
+        required: true
+        choices:
+          - server
+          - agent
+        description: Whether this node runs the control plane (server) or only workloads (agent).
+      k3s_install_script_url:
+        type: str
+        description: Location of the K3s install script. Defaults to the script of the pinned release tag.
+      k3s_install_script_checksum:
+        type: str
+        required: true
+        description: Checksum of the install script of k3s_version, in the form sha256:<hash>. Change it together with k3s_version.
+      k3s_cluster_network_prefix:
+        type: str
+        required: true
+        description: Address prefix of the network the nodes use to talk to each other, for example "192.168.104.".
+      k3s_server_address:
+        type: str
+        required: true
+        description: DNS name or IP the agents use to reach the server's API. Also added to the API certificate (tls-san).
+      k3s_api_port:
+        type: int
+        default: 6443
+        description: Port of the Kubernetes API on the server.
+      k3s_secrets_encryption:
+        type: bool
+        default: true
+        description: Encrypt Kubernetes Secrets at rest (server only).
+      k3s_node_labels:
+        type: list
+        elements: str
+        default: []
+        description: Labels to put on the node, as key=value.
+      k3s_kubeconfig_local_path:
+        type: str
+        default: ""
+        description: Where to copy the kubeconfig on the Ansible controller. Empty disables the copy.

@@ -1,0 +1,52 @@
+---
+# The join token is read from the server at run time, so it is never stored in the repository.
+- name: Read the cluster join token from the server
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  delegate_to: "{{ groups['k3s_server'][0] }}"
+  register: k3s_join_token
+  no_log: true
+
+- name: Create the K3s configuration directory
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Render the K3s agent configuration
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  register: k3s_config_result
+
+- name: Install K3s and join the cluster
+  ansible.builtin.include_tasks: install.yml
+  vars:
+    k3s_service_name: k3s-agent
+    k3s_install_environment:
+      K3S_URL: "https://{{ k3s_server_address }}:{{ k3s_api_port }}"
+      K3S_TOKEN: "{{ k3s_join_token.content | b64decode | trim }}"
+
+- name: Wait for the agent node to join and become Ready
+  ansible.builtin.command: >-
+    /usr/local/bin/k3s kubectl wait --for=condition=Ready
+    node/{{ ansible_facts['hostname'] }} --timeout=60s
+  delegate_to: "{{ groups['k3s_server'][0] }}"
+  register: k3s_agent_ready
+  until: k3s_agent_ready.rc == 0
+  retries: 12
+  delay: 10
+  changed_when: false
+
+- name: Label the node as a worker
+  ansible.builtin.command: >-
+    /usr/local/bin/k3s kubectl label node {{ ansible_facts['hostname'] }}
+    node-role.kubernetes.io/worker=worker --overwrite
+  delegate_to: "{{ groups['k3s_server'][0] }}"
+  register: k3s_label_result
+  changed_when: "'not labeled' not in k3s_label_result.stdout"

@@ -3,6 +3,7 @@ extends: default
 
 ignore:
   - .venv/
+  - .kube/  # local kubeconfig with the cluster admin key: never lint or print it
 
 rules:
   comments:

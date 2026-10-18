@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: Andrea Favaccio
+  description: Install and configure K3s as a server or an agent
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - kubernetes
+    - k3s
+dependencies: []

@@ -1,0 +1,65 @@
+---
+- name: Create the K3s configuration directory
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Render the K3s server configuration
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  register: k3s_config_result
+
+- name: Install K3s and start the server
+  ansible.builtin.include_tasks: install.yml
+  vars:
+    k3s_service_name: k3s
+    k3s_install_environment: {}
+
+- name: Wait for the server node to be Ready
+  ansible.builtin.command: >-
+    /usr/local/bin/k3s kubectl wait --for=condition=Ready
+    node/{{ ansible_facts['hostname'] }} --timeout=60s
+  register: k3s_server_ready
+  until: k3s_server_ready.rc == 0
+  retries: 10
+  delay: 10
+  changed_when: false
+
+# The kubeconfig is read and written in two steps (not fetched, then edited) so the local
+# copy only changes when the server's kubeconfig does, and re-runs report no change.
+- name: Read the kubeconfig from the server
+  ansible.builtin.slurp:
+    src: /etc/rancher/k3s/k3s.yaml
+  register: k3s_kubeconfig
+  # It contains the cluster admin's client key.
+  no_log: true
+  when: k3s_kubeconfig_local_path | length > 0
+
+- name: Create the local kubeconfig directory
+  ansible.builtin.file:
+    path: "{{ k3s_kubeconfig_local_path | dirname }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+  when: k3s_kubeconfig_local_path | length > 0
+
+- name: Write the kubeconfig on the Ansible controller, with the context renamed to "homelab"
+  ansible.builtin.copy:
+    content: "{{ k3s_kubeconfig.content | b64decode | regex_replace(k3s_context_pattern, k3s_context_replacement, multiline=True) }}"
+    dest: "{{ k3s_kubeconfig_local_path }}"
+    mode: "0600"
+  vars:
+    k3s_context_pattern: '^(\s*(?:- )?(?:name|cluster|user|current-context)): default$'
+    k3s_context_replacement: '\1: homelab'
+  delegate_to: localhost
+  become: false
+  no_log: true
+  when: k3s_kubeconfig_local_path | length > 0
