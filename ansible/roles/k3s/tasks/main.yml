@@ -1,0 +1,6 @@
+---
+- name: Discover the cluster network address of this node
+  ansible.builtin.import_tasks: prereqs.yml
+
+- name: Deploy K3s on this node
+  ansible.builtin.include_tasks: "{{ k3s_node_role }}.yml"

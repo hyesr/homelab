@@ -5,11 +5,15 @@ SHELL := /usr/bin/env bash
 # Extra flags for ansible-playbook, e.g.: make provision ANSIBLE_ARGS="--check --diff"
 ANSIBLE_ARGS ?=
 
-.PHONY: help vms start stop down status ssh-config ping provision lint
+KUBECONFIG_FILE := $(CURDIR)/.kube/homelab.yaml
+
+.PHONY: help up vms start stop down status ssh-config ping provision kubeconfig lint
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*## "}; {printf "  %-15s %s\n", $$1, $$2}'
+
+up: vms provision ## Create the VMs and install K3s on them
 
 vms: ## Create (or start) the Lima VMs
 	bash scripts/vms.sh up
@@ -32,8 +36,11 @@ ssh-config: ## Regenerate the SSH config used by Ansible
 ping: ssh-config ## Check that Ansible can reach every node
 	cd ansible && ansible all -m ansible.builtin.ping
 
-provision: ssh-config ## Run the Ansible playbook
+provision: ssh-config ## Run the Ansible playbook (install or upgrade K3s)
 	cd ansible && ansible-playbook site.yml $(ANSIBLE_ARGS)
+
+kubeconfig: ## Print the KUBECONFIG export line (use: eval "$(make -s kubeconfig)")
+	@echo 'export KUBECONFIG="$(KUBECONFIG_FILE)"'
 
 lint: ## Lint YAML, Ansible and shell scripts
 	yamllint .

@@ -1,0 +1,30 @@
+---
+# K3s must advertise the address on the network the nodes share. On Lima's user-v2
+# network each VM has a single interface, so K3s would find it anyway, but a real
+# machine can have several (Wi-Fi, Docker, VPN), and picking the wrong one breaks
+# traffic between nodes. Choosing it explicitly keeps the playbook portable.
+- name: Find the node address and interface on the cluster network
+  ansible.builtin.set_fact:
+    k3s_node_ip: >-
+      {{ ansible_facts['all_ipv4_addresses']
+         | select('match', '^' ~ (k3s_cluster_network_prefix | regex_escape))
+         | first | default('') }}
+    k3s_flannel_iface: >-
+      {{ ansible_facts['interfaces']
+         | map('extract', ansible_facts)
+         | selectattr('ipv4', 'defined')
+         | selectattr('ipv4.address', 'match', '^' ~ (k3s_cluster_network_prefix | regex_escape))
+         | map(attribute='device')
+         | first | default('') }}
+
+- name: Check that the cluster network address was found
+  ansible.builtin.assert:
+    that:
+      - k3s_node_ip | length > 0
+      - k3s_flannel_iface | length > 0
+    fail_msg: >-
+      No address starting with {{ k3s_cluster_network_prefix }} on {{ inventory_hostname }}
+      (found: {{ ansible_facts['all_ipv4_addresses'] | join(', ') }}).
+      Check the subnet with `limactl shell {{ inventory_hostname }} ip -4 addr`
+      and set k3s_cluster_network_prefix accordingly.
+    quiet: true

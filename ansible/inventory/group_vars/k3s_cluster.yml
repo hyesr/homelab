@@ -1,0 +1,8 @@
+---
+# Pinned on purpose: one minor version behind the newest K3s line.
+# To upgrade, change this value and re-run `make provision`.
+k3s_version: v1.36.5+k3s1
+
+# Prefix of the addresses on the Lima "user-v2" network (VM to VM traffic).
+# Check with: limactl shell homelab-cp ip -4 addr
+k3s_cluster_network_prefix: "192.168.104."

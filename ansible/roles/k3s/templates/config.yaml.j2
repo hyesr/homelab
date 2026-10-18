@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+# K3s reads this file at start-up. See https://docs.k3s.io/installation/configuration
+node-ip: {{ k3s_node_ip | to_json }}
+flannel-iface: {{ k3s_flannel_iface | to_json }}
+{% if k3s_node_role == 'server' %}
+write-kubeconfig-mode: "0600"
+secrets-encryption: {{ k3s_secrets_encryption | to_json }}
+tls-san:
+  - {{ ('lima-' ~ inventory_hostname ~ '.internal') | to_json }}
+  - "127.0.0.1"
+{% endif %}
+{% if k3s_node_labels | length > 0 %}
+node-label:
+{% for label in k3s_node_labels %}
+  - {{ label | to_json }}
+{% endfor %}
+{% endif %}
