@@ -1,0 +1,12 @@
+---
+argument_specs:
+  main:
+    short_description: Baseline packages and checks for the homelab nodes
+    options:
+      common_packages:
+        type: list
+        elements: str
+        default:
+          - ca-certificates
+          - curl
+        description: Packages that must be present on every node.

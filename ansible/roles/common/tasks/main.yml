@@ -1,0 +1,14 @@
+---
+- name: Check that the node runs a Debian-family operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'Debian'
+    fail_msg: "This playbook is written for Ubuntu/Debian nodes, found {{ ansible_facts['os_family'] }}."
+    quiet: true
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
