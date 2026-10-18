@@ -1,3 +1,0 @@
----
-# Lima names the SSH host alias of every instance "lima-<instance name>".
-ansible_host: "lima-{{ inventory_hostname }}"
