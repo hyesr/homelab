@@ -1,7 +1,9 @@
 ---
 # Pinned on purpose: one minor version behind the newest K3s line.
-# To upgrade, change this value and re-run `make provision`.
+# To upgrade, change both values below and re-run `make provision`. Get the checksum with:
+#   curl -fsSL "https://raw.githubusercontent.com/k3s-io/k3s/<version with + as %2B>/install.sh" | shasum -a 256
 k3s_version: v1.36.5+k3s1
+k3s_install_script_checksum: "sha256:46177d4c99440b4c0311b67233823a8e8a2fc09693f6c89af1a7161e152fbfad"
 
 # Prefix of the addresses on the Lima "user-v2" network (VM to VM traffic).
 # Check with: limactl shell homelab-cp ip -4 addr

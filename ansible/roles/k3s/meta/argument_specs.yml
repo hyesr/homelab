@@ -19,8 +19,8 @@ argument_specs:
         description: Location of the K3s install script. Defaults to the script of the pinned release tag.
       k3s_install_script_checksum:
         type: str
-        default: ""
-        description: Optional checksum of the install script, in the form sha256:<hash>.
+        required: true
+        description: Checksum of the install script of k3s_version, in the form sha256:<hash>. Change it together with k3s_version.
       k3s_cluster_network_prefix:
         type: str
         required: true

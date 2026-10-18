@@ -8,8 +8,10 @@
     owner: root
     group: root
     mode: "0755"
-    checksum: "{{ k3s_install_script_checksum if k3s_install_script_checksum | length > 0 else omit }}"
-    force: true
+    # Downloaded only when the file on disk doesn't match this checksum (for example after
+    # a version bump), and rejected if the download doesn't match it. No "force": with
+    # force, check mode can't compare and always reports a change.
+    checksum: "{{ k3s_install_script_checksum }}"
 
 - name: Read the installed K3s version
   ansible.builtin.command: /usr/local/bin/k3s --version
