@@ -29,6 +29,14 @@ argument_specs:
         type: str
         required: true
         description: DNS name or IP the agents use to reach the server's API. Also added to the API certificate (tls-san).
+      k3s_agent_token_file:
+        type: str
+        default: /etc/rancher/k3s/agent-token
+        description: On the server, the file holding the agent join secret (generated once by the role).
+      k3s_join_token_file:
+        type: str
+        default: /etc/rancher/k3s/join-token
+        description: On each agent, the file holding the agent token it joins with.
       k3s_api_port:
         type: int
         default: 6443
