@@ -1,8 +1,10 @@
 ---
 # The join token is read from the server at run time, so it is never stored in the repository.
-- name: Read the cluster join token from the server
+# It is the *agent* token (see "Create the agent join secret" in server.yml), not node-token,
+# which is the server token and would give a worker full control of the cluster.
+- name: Read the agent join token from the server
   ansible.builtin.slurp:
-    src: /var/lib/rancher/k3s/server/node-token
+    src: /var/lib/rancher/k3s/server/agent-token
   delegate_to: "{{ groups['k3s_server'][0] }}"
   register: k3s_join_token
   no_log: true
@@ -14,6 +16,28 @@
     owner: root
     group: root
     mode: "0755"
+
+# K3s reads the token from this file (token-file in config.yaml), so the secret is not
+# copied into the systemd environment file by the installer.
+- name: Store the agent join token
+  ansible.builtin.copy:
+    content: "{{ k3s_join_token.content | b64decode | trim }}"
+    dest: "{{ k3s_join_token_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  register: k3s_join_token_result
+  no_log: true
+
+# Earlier versions of this role passed the server token to the installer as K3S_TOKEN,
+# which the installer saved here. Remove it so only token-file is used.
+- name: Remove the old token from the K3s agent service environment
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/system/k3s-agent.service.env
+    regexp: "^K3S_TOKEN="
+    state: absent
+  register: k3s_env_token_result
+  no_log: true
 
 - name: Render the K3s agent configuration
   ansible.builtin.template:
@@ -30,7 +54,11 @@
     k3s_service_name: k3s-agent
     k3s_install_environment:
       K3S_URL: "https://{{ k3s_server_address }}:{{ k3s_api_port }}"
-      K3S_TOKEN: "{{ k3s_join_token.content | b64decode | trim }}"
+      # A path, not the secret: the installer requires a token setting when K3S_URL is set.
+      K3S_TOKEN_FILE: "{{ k3s_join_token_file }}"
+    k3s_restart_required: >-
+      {{ k3s_config_result is changed or k3s_join_token_result is changed
+         or k3s_env_token_result is changed }}
 
 - name: Wait for the agent node to join and become Ready
   ansible.builtin.command: >-

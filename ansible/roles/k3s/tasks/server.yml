@@ -7,6 +7,22 @@
     group: root
     mode: "0755"
 
+# Agents join with this secret instead of the server token. The server token gives full
+# administrator access to the cluster (it can join servers and decrypt the bootstrap data
+# with the CA keys); the agent token can only join agents, so a compromised worker cannot
+# take over the cluster. Generated once on the server, never stored in Git, and never
+# overwritten (force: false).
+- name: Create the agent join secret
+  ansible.builtin.copy:
+    content: "{{ lookup('ansible.builtin.password', '/dev/null', length=64, chars=['ascii_letters', 'digits']) }}"
+    dest: "{{ k3s_agent_token_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+    force: false
+  register: k3s_agent_token_result
+  no_log: true
+
 - name: Render the K3s server configuration
   ansible.builtin.template:
     src: config.yaml.j2
@@ -21,6 +37,7 @@
   vars:
     k3s_service_name: k3s
     k3s_install_environment: {}
+    k3s_restart_required: "{{ k3s_config_result is changed or k3s_agent_token_result is changed }}"
 
 - name: Wait for the server node to be Ready
   ansible.builtin.command: >-

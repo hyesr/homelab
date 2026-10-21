@@ -1,6 +1,7 @@
 ---
-# Expects: k3s_service_name, k3s_install_environment and k3s_config_result
-# (set by server.yml / agent.yml).
+# Expects: k3s_service_name, k3s_install_environment and k3s_restart_required
+# (set by server.yml / agent.yml). k3s_restart_required is true when the configuration
+# or a token file changed, so a running node picks up the change.
 - name: Download the K3s install script of the pinned release
   ansible.builtin.get_url:
     url: "{{ k3s_install_script_url }}"
@@ -25,16 +26,14 @@
   environment: "{{ k3s_install_environment | combine({'INSTALL_K3S_VERSION': k3s_version}) }}"
   register: k3s_install_result
   changed_when: true
-  # The agent environment contains the cluster join token.
-  no_log: "{{ k3s_node_role == 'agent' }}"
   when: k3s_version not in (k3s_installed_version.stdout | default(''))
 
-- name: Restart K3s to apply a configuration change
+- name: Restart K3s to apply a configuration or token change
   ansible.builtin.systemd_service:
     name: "{{ k3s_service_name }}"
     state: restarted
   when:
-    - k3s_config_result is changed
+    - k3s_restart_required | bool
     - k3s_install_result is skipped
 
 - name: Make sure the K3s service is enabled and running
