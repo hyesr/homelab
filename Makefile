@@ -5,7 +5,10 @@ SHELL := /usr/bin/env bash
 # Extra flags for ansible-playbook, e.g.: make provision ANSIBLE_ARGS="--check --diff"
 ANSIBLE_ARGS ?=
 
-KUBECONFIG_FILE := $(CURDIR)/.kube/homelab.yaml
+# Where the kubeconfig is written, outside the repository. Override it with an absolute path,
+# e.g. make up KUBECONFIG_FILE=$HOME/.kube/my-lab.yaml. It is passed to Ansible, so the
+# default in ansible/inventory/group_vars/k3s_server.yml only applies to direct ansible-playbook runs.
+KUBECONFIG_FILE ?= $(HOME)/.kube/homelab.yaml
 
 .PHONY: help up vms start stop down status ssh-config ping provision kubeconfig lint
 
@@ -37,7 +40,7 @@ ping: ssh-config ## Check that Ansible can reach every node
 	cd ansible && ansible all -m ansible.builtin.ping
 
 provision: ssh-config ## Run the Ansible playbook (install or upgrade K3s)
-	cd ansible && ansible-playbook site.yml $(ANSIBLE_ARGS)
+	cd ansible && ansible-playbook site.yml -e "k3s_kubeconfig_local_path='$(KUBECONFIG_FILE)'" $(ANSIBLE_ARGS)
 
 kubeconfig: ## Print the KUBECONFIG export line (use: eval "$(make -s kubeconfig)")
 	@echo 'export KUBECONFIG="$(KUBECONFIG_FILE)"'
