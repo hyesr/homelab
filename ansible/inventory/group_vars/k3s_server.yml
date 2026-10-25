@@ -2,5 +2,9 @@
 k3s_node_role: server
 k3s_node_labels:
   - homelab/role=control-plane
-# Where the kubeconfig is copied on the machine running Ansible (git-ignored).
-k3s_kubeconfig_local_path: "{{ playbook_dir }}/../.kube/homelab.yaml"
+# Where the kubeconfig (cluster admin credentials) is written on the machine running Ansible:
+# the standard ~/.kube folder, outside the repository, so tools working in the repo, editor
+# indexing, and backup or sync of the project folder never see it. `make` passes its own
+# KUBECONFIG_FILE (same default, overridable), so this value only applies to direct
+# ansible-playbook runs.
+k3s_kubeconfig_local_path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.kube/homelab.yaml"

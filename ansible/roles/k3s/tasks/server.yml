@@ -59,14 +59,26 @@
   no_log: true
   when: k3s_kubeconfig_local_path | length > 0
 
-- name: Create the local kubeconfig directory
+# The kubeconfig path can be overridden, so its folder may be one the user already has
+# (even $HOME). Create it private (0700) when it is missing, but never change an existing one.
+- name: Check the local kubeconfig directory
+  ansible.builtin.stat:
+    path: "{{ k3s_kubeconfig_local_path | dirname }}"
+  register: k3s_kubeconfig_dir
+  delegate_to: localhost
+  become: false
+  when: k3s_kubeconfig_local_path | length > 0
+
+- name: Create the local kubeconfig directory when it is missing
   ansible.builtin.file:
     path: "{{ k3s_kubeconfig_local_path | dirname }}"
     state: directory
     mode: "0700"
   delegate_to: localhost
   become: false
-  when: k3s_kubeconfig_local_path | length > 0
+  when:
+    - k3s_kubeconfig_local_path | length > 0
+    - not k3s_kubeconfig_dir.stat.exists
 
 - name: Write the kubeconfig on the Ansible controller, with the context renamed to "homelab"
   ansible.builtin.copy:
