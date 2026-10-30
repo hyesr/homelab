@@ -43,7 +43,7 @@ eval "$(make -s kubeconfig)"     # point kubectl at the cluster (this terminal o
 kubectl get nodes                # one control plane and two workers, all Ready
 ```
 
-Each VM runs Ubuntu 26.04 with 2 vCPUs, 2 GiB of RAM and a 20 GiB disk that only takes the space it uses. The VMs share Lima's `user-v2` network, so they reach each other by name (`lima-homelab-cp.internal`). The kubeconfig is written to `.kube/homelab.yaml` (git-ignored) and reaches the API through Lima's port forward on `127.0.0.1:6443`.
+Each VM runs Ubuntu 26.04 with 2 vCPUs, 2 GiB of RAM and a 20 GiB disk that only takes the space it uses. The VMs share Lima's `user-v2` network, so they reach each other by name (`lima-homelab-cp.internal`). The kubeconfig is written to `~/.kube/homelab.yaml`, outside the repository because it holds the cluster admin credentials, and reaches the API through Lima's port forward on `127.0.0.1:6443`. It is overwritten on every run; to use another file, pass an absolute path, for example `make up KUBECONFIG_FILE=$HOME/.kube/my-lab.yaml` (and the same to `make kubeconfig`). A missing folder is created readable only by you (0700); an existing folder is left as it is.
 
 Day to day:
 
