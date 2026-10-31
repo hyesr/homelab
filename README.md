@@ -45,6 +45,26 @@ kubectl get nodes                # one control plane and two workers, all Ready
 
 Each VM runs Ubuntu 26.04 with 2 vCPUs, 2 GiB of RAM and a 20 GiB disk that only takes the space it uses. The VMs share Lima's `user-v2` network, so they reach each other by name (`lima-homelab-cp.internal`). The kubeconfig is written to `~/.kube/homelab.yaml`, outside the repository because it holds the cluster admin credentials, and reaches the API through Lima's port forward on `127.0.0.1:6443`. It is overwritten on every run; to use another file, pass an absolute path, for example `make up KUBECONFIG_FILE=$HOME/.kube/my-lab.yaml` (and the same to `make kubeconfig`). A missing folder is created readable only by you (0700); an existing folder is left as it is.
 
+Connecting with kubectl: kubectl reads `~/.kube/config` unless the `KUBECONFIG` variable names another file, so each new terminal needs pointing at this one:
+
+```bash
+eval "$(make -s kubeconfig)"                          # from the repo folder (make only prints the export line)
+export KUBECONFIG=~/.kube/homelab.yaml                # the same, from any folder
+kubectl --kubeconfig ~/.kube/homelab.yaml get nodes   # a single command, nothing exported
+kubectl config get-contexts                           # check: the current context (*) is homelab
+```
+
+To make it permanent, append the `export` line to your shell's profile. Run only the line for your shell (`echo $SHELL` tells you which), once, then open a new terminal:
+
+```bash
+printf '\nexport KUBECONFIG=$HOME/.kube/homelab.yaml\n' >> ~/.zshrc         # zsh, the macOS default
+printf '\nexport KUBECONFIG=$HOME/.kube/homelab.yaml\n' >> ~/.bash_profile  # bash
+```
+
+`>>` appends to the file (a single `>` would replace the whole profile), and the leading `\n` keeps the new line separate even when the profile does not end with a newline. With bash, if your settings live in `~/.profile` and there is no `~/.bash_profile`, append to `~/.profile` instead: bash reads only the first of the two it finds, so creating `~/.bash_profile` would stop `~/.profile` from loading. Every new terminal then talks to this cluster; to undo it, delete that line from the profile.
+
+After `make down` and `make up` the cluster has a new certificate authority: the kubeconfig is rewritten, but copies of it (for example one loaded into a desktop app) stop working until they are loaded again.
+
 Day to day:
 
 ```bash
