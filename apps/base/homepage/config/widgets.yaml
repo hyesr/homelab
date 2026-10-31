@@ -1,0 +1,15 @@
+---
+# https://gethomepage.dev/widgets/info/kubernetes/
+# CPU and memory come from metrics-server, which K3s installs by default.
+- kubernetes:
+    cluster:
+      show: true
+      cpu: true
+      memory: true
+      showLabel: true
+      label: homelab
+    nodes:
+      show: true
+      cpu: true
+      memory: true
+      showLabel: true
