@@ -1,0 +1,9 @@
+---
+# https://gethomepage.dev/configs/kubernetes/
+# "cluster" uses the pod's service account (permissions in ../rbac.yaml).
+mode: cluster
+# Discover apps from annotated Ingress objects only. Traefik IngressRoutes and Gateway API
+# routes are not used here yet, and the ClusterRole does not allow reading them.
+ingress: true
+traefik: false
+gateway: false

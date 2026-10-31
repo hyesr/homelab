@@ -1,0 +1,27 @@
+---
+# Only the ingress controller (Traefik, bundled with K3s in kube-system) may reach Homepage.
+# Egress is open: Homepage calls the Kubernetes API and, later, the apps it shows.
+# If the dashboard is unreachable through the ingress, check the Traefik pod labels with:
+#   kubectl -n kube-system get pods --show-labels
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: homepage-ingress
+  namespace: homepage
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: homepage
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 3000

@@ -41,3 +41,23 @@ Flux installs cert-manager from its official Helm chart (OCI, on quay.io) in two
 - Browsers distrust the CA until its certificate is installed on each device. A real domain with DNS-01 validation would remove that, at the cost of owning a domain; on a VPS, only the issuer would change.
 - The CA's private key lives only in the cluster, so a rebuild creates a new CA that has to be trusted again. Keeping it encrypted in Git waits for SOPS and age, like the Flux deploy key.
 - Flux does not verify the chart's signature: cert-manager documents cosign for its images and GPG for its classic Helm repository, but not how the OCI chart is signed.
+
+## 6. Traefik (bundled with K3s), not ingress-nginx
+
+The Kubernetes project retired ingress-nginx in March 2026, so it receives no security fixes. K3s bundles Traefik, which is maintained and also supports Gateway API. Apps use standard `Ingress` objects for now, with TLS from the `homelab-ca` issuer.
+
+From the Mac, Lima forwards ports 80 and 443 to Traefik. macOS lets a normal user bind ports below 1024 only on the wildcard address, so Lima listens on all interfaces but closes every connection that does not come from the Mac itself (its "pseudoloopback" forwarder): the apps answer on `https://<name>.home.arpa` from the Mac, and devices on the LAN get their connection closed.
+
+**Next step:** move to Gateway API once the basics work.
+
+## 7. A dashboard (Homepage) as the first app
+
+The first app is [Homepage](https://gethomepage.dev), a start page for the homelab, rather than a monitoring tool such as Uptime Kuma. It is stateless (its configuration is a ConfigMap generated from `apps/base/homepage/config/`), so it needs no persistent volume or backup, and it exercises the whole path: Flux, Ingress, cert-manager TLS and a NetworkPolicy. New apps add themselves to the dashboard with `gethomepage.dev/*` annotations on their Ingress, so the dashboard grows without editing its config.
+
+It is deployed with plain manifests written here, following the upstream Kubernetes guide: the only Helm chart is unofficial and installs Homepage v1. The image is pinned to v2.6.0, one minor behind the newest; versions 2.0.0 to 2.5.0 are affected by a high-severity advisory (GHSA-qxcr-4rv3-v23r) fixed in 2.6.0.
+
+**Trade-offs:**
+
+- Homepage gets a read-only ClusterRole (nodes, pods, namespaces, ingresses and metrics) to show node usage and discover apps. It cannot read Secrets, Traefik IngressRoutes or Gateway API routes; discovery of those is turned off in `kubernetes.yaml`.
+- Homepage's login gate (`HOMEPAGE_AUTH_ENABLED`) is off, because its password and cookie secret would be the first secrets in the repository and SOPS is not set up yet. The dashboard is only reachable from the Mac mini (decision 6); turn the login on before exposing it to the LAN.
+- Uptime-style monitoring moves to the "Lightweight monitoring" roadmap item.

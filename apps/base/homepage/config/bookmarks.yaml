@@ -1,0 +1,6 @@
+---
+# https://gethomepage.dev/configs/bookmarks/
+- Homelab:
+    - Repository:
+        - abbr: GH
+          href: https://github.com/hyesr/homelab

@@ -1,0 +1,6 @@
+---
+# The apps that run on the "homelab" cluster. Add a line here to deploy another app.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base/homepage

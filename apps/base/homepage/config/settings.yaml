@@ -1,0 +1,6 @@
+---
+# https://gethomepage.dev/configs/settings/
+title: homelab
+theme: dark
+color: slate
+headerStyle: clean

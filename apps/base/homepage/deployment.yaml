@@ -1,0 +1,103 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+  namespace: homepage
+  labels:
+    app.kubernetes.io/name: homepage
+spec:
+  # Stateless: the configuration comes from the ConfigMap, so no volume and no Recreate.
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: homepage
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: homepage
+    spec:
+      serviceAccountName: homepage
+      # Needed: Homepage calls the Kubernetes API with this token (see rbac.yaml).
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        # The image's app files belong to 1000:1000. Running as that user directly makes
+        # the entrypoint skip its chown and su-exec steps.
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: homepage
+          # Pinned, one minor behind the newest (v2.7.0). v2.0.0 to v2.5.0 are affected by
+          # GHSA-qxcr-4rv3-v23r (high), fixed in v2.6.0. Bump it deliberately, in a pull request.
+          image: ghcr.io/gethomepage/homepage:v2.6.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            # Homepage rejects requests whose Host header is not listed here.
+            # localhost:3000 (port-forward) is always allowed; the pod IP is for the probes.
+            - name: HOMEPAGE_ALLOWED_HOSTS
+              value: "dashboard.home.arpa,$(MY_POD_IP):3000"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 384Mi
+          startupProbe:
+            httpGet:
+              path: /api/healthcheck
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /api/healthcheck
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/healthcheck
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            # Homepage writes logs and default files into /app/config, so it is a
+            # writable emptyDir with the files from the ConfigMap mounted on top.
+            - name: config-dir
+              mountPath: /app/config
+            - name: config
+              mountPath: /app/config/settings.yaml
+              subPath: settings.yaml
+            - name: config
+              mountPath: /app/config/services.yaml
+              subPath: services.yaml
+            - name: config
+              mountPath: /app/config/widgets.yaml
+              subPath: widgets.yaml
+            - name: config
+              mountPath: /app/config/bookmarks.yaml
+              subPath: bookmarks.yaml
+            - name: config
+              mountPath: /app/config/kubernetes.yaml
+              subPath: kubernetes.yaml
+      volumes:
+        - name: config-dir
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: config
+          configMap:
+            name: homepage-config
