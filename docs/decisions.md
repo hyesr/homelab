@@ -29,3 +29,15 @@ I did not use `flux bootstrap`. It needs a personal access token that can push t
 - The first install is a few manual commands instead of one (they are in the README).
 - The private key lives only in the cluster, so a rebuild needs a new deploy key. Keeping it encrypted in Git waits for SOPS and age (roadmap).
 - Flux is pinned to v2.10.0, the newest release, an exception to the "one minor behind" rule of decision 2. The Flux CLI only generates manifests for its own version (v2.10.0 refused to generate v2.9.6), and the CLI and the controllers should match, so following the rule would mean keeping an older CLI around. Flux v2.10.0 needs Kubernetes 1.35 or newer; the cluster runs 1.36.
+
+## 5. cert-manager with an internal CA, and the `home.arpa` domain
+
+Apps get TLS certificates from [cert-manager](https://cert-manager.io), which issues them from Kubernetes objects and renews them before they expire. They are signed by a CA created inside the cluster: a self-signed issuer signs the `homelab-ca` certificate, and the `homelab-ca` ClusterIssuer signs the apps' certificates. The apps will use `home.arpa`, the domain reserved for home networks (RFC 8375); `.local` belongs to mDNS and `.lan` is not reserved at all. No public CA can issue certificates for `home.arpa`, hence the internal one.
+
+Flux installs cert-manager from its official Helm chart (OCI, on quay.io) in two steps: `infrastructure/controllers` installs the chart and its CRDs, then `infrastructure/configs` creates the issuers, which need those CRDs (`dependsOn`). The chart is pinned to v1.21.3, the newest minor rather than one behind: cert-manager 1.20 does not support Kubernetes 1.36. So the rule of decision 2 reads: one minor behind, unless that minor does not support the cluster's Kubernetes version.
+
+**Trade-offs:**
+
+- Browsers distrust the CA until its certificate is installed on each device. A real domain with DNS-01 validation would remove that, at the cost of owning a domain; on a VPS, only the issuer would change.
+- The CA's private key lives only in the cluster, so a rebuild creates a new CA that has to be trusted again. Keeping it encrypted in Git waits for SOPS and age, like the Flux deploy key.
+- Flux does not verify the chart's signature: cert-manager documents cosign for its images and GPG for its classic Helm repository, but not how the OCI chart is signed.
