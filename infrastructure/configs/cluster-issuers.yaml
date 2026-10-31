@@ -22,6 +22,18 @@ spec:
   privateKey:
     algorithm: ECDSA
     size: 256
+  # Devices that trust this CA accept what it signs, so limit it to home.arpa: a certificate
+  # it signs for any other domain, or for an IP address, fails in every client that checks
+  # name constraints (browsers, macOS, OpenSSL). cert-manager itself does not check them.
+  nameConstraints:
+    critical: true
+    permitted:
+      dnsDomains:
+        - home.arpa
+    excluded:
+      ipRanges:
+        - 0.0.0.0/0
+        - ::/0
   issuerRef:
     name: selfsigned
     kind: ClusterIssuer

@@ -39,6 +39,7 @@ Flux installs cert-manager from its official Helm chart (OCI, on quay.io) in two
 **Trade-offs:**
 
 - Browsers distrust the CA until its certificate is installed on each device. A real domain with DNS-01 validation would remove that, at the cost of owning a domain; on a VPS, only the issuer would change.
+- A device that trusts the CA accepts whatever it signs, and its key is a Secret in the cluster, so cluster-admin access would mean certificates for any website. The CA therefore carries X.509 name constraints: `home.arpa` only, no IP addresses. Clients enforce them, not cert-manager (tested with OpenSSL and the macOS verifier: `dashboard.home.arpa` passes, `github.com` and an IP address are rejected). It needs the `NameConstraints` feature gate, which is alpha in cert-manager 1.21.
 - The CA's private key lives only in the cluster, so a rebuild creates a new CA that has to be trusted again. Keeping it encrypted in Git waits for SOPS and age, like the Flux deploy key.
 - Flux does not verify the chart's signature: cert-manager documents cosign for its images and GPG for its classic Helm repository, but not how the OCI chart is signed.
 
