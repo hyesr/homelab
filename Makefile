@@ -1,4 +1,6 @@
 SHELL := /usr/bin/env bash
+# GNU Make 3.82+ only: the make that ships with macOS (3.81) ignores .SHELLFLAGS, so a recipe
+# that chains commands in one shell starts with its own `set -euo pipefail`.
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 
@@ -10,7 +12,17 @@ ANSIBLE_ARGS ?=
 # default in ansible/inventory/group_vars/k3s_server.yml only applies to direct ansible-playbook runs.
 KUBECONFIG_FILE ?= $(HOME)/.kube/homelab.yaml
 
-.PHONY: help up vms start stop down status ssh-config ping provision kubeconfig lint
+# kubeconform checks the manifests against the schemas of the cluster's Kubernetes version (read
+# from k3s_version, so they never drift apart), and custom resources such as Flux's against the
+# Datree CRDs catalog. -strict also rejects unknown fields. CustomResourceDefinitions are skipped by
+# name: neither source has a schema for them, they come from upstream projects, and the API server
+# checks them on apply. Any other kind without a schema fails, so a typo in a kind is an error.
+K8S_VERSION := $(shell sed -nE 's/^k3s_version: "?v([0-9.]+)\+.*/\1/p' ansible/inventory/group_vars/k3s_cluster.yml)
+KUBECONFORM_FLAGS := -strict -summary -kubernetes-version $(K8S_VERSION) -skip CustomResourceDefinition \
+	-schema-location default \
+	-schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+
+.PHONY: help up vms start stop down status ssh-config ping provision kubeconfig lint validate
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | \
@@ -49,3 +61,13 @@ lint: ## Lint YAML, Ansible and shell scripts
 	yamllint .
 	cd ansible && ansible-lint
 	shellcheck scripts/*.sh
+
+validate: ## Validate the Kubernetes manifests (needs kubectl and kubeconform)
+	@set -euo pipefail; \
+	test -n "$(K8S_VERSION)" || { echo "error: cannot read k3s_version" >&2; exit 1; }; \
+	dirs=$$(find . -name kustomization.yaml -not -path './.venv/*' -not -path './.git/*' -exec dirname {} \; | sort); \
+	test -n "$$dirs" || { echo "error: no kustomization.yaml found" >&2; exit 1; }; \
+	for dir in $$dirs; do \
+		echo "==> $${dir#./} (Kubernetes $(K8S_VERSION))"; \
+		kubectl kustomize "$$dir" | kubeconform $(KUBECONFORM_FLAGS) -; \
+	done
