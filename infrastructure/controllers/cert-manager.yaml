@@ -44,3 +44,9 @@ spec:
       enabled: true
       # Keep the CRDs (and the certificates stored in them) if this release is ever removed.
       keep: true
+    # Alpha in v1.21: lets the internal CA carry X.509 name constraints (see
+    # infrastructure/configs/cluster-issuers.yaml). The controller writes them into the
+    # certificate and the webhook accepts the field, so both need it.
+    featureGates: NameConstraints=true
+    webhook:
+      featureGates: NameConstraints=true
