@@ -2,7 +2,7 @@
 
 A three-node Kubernetes cluster on a Mac mini (M4, 16 GB), built entirely from code and managed with GitOps.
 
-> **Status: early stage.** The VMs, CI and the K3s cluster work; GitOps with Flux is next. This repository grows one stage at a time, and each stage is committed once it actually runs on the Mac mini. The roadmap below is ticked only for things that work.
+> **Status: early stage.** The VMs, CI, the K3s cluster and GitOps with Flux work; cert-manager and the internal CA are next. This repository grows one stage at a time, and each stage is committed once it actually runs on the Mac mini. The roadmap below is ticked only for things that work.
 
 ## The plan
 
@@ -20,8 +20,8 @@ A three-node Kubernetes cluster on a Mac mini (M4, 16 GB), built entirely from c
 - [x] Three Lima VMs created with one command
 - [x] CI: lint every push
 - [x] K3s installed on them with Ansible
-- [ ] Flux bootstrapped and syncing this repository
-- [ ] CI: validate the Kubernetes manifests
+- [x] Flux installed and syncing this repository
+- [x] CI: validate the Kubernetes manifests
 - [ ] cert-manager and the internal CA
 - [ ] Homepage dashboard
 - [ ] Reach the apps from the LAN
@@ -106,15 +106,18 @@ The private key exists only in the cluster, so `make down` loses it: after a reb
 
 ## Development
 
-Ansible and the linters are pinned in `requirements-dev.txt` and installed in a virtual environment, the same versions CI uses. Every pull request runs `make lint` in GitHub Actions; run the same checks locally before pushing:
+Ansible and the linters are pinned in `requirements-dev.txt` and installed in a virtual environment, the same versions CI uses. Every pull request runs `make lint` and `make validate` in GitHub Actions; run the same checks locally before pushing:
 
 ```bash
-brew install shellcheck
+brew install shellcheck kubeconform
 python3.14 -m venv .venv          # ansible-core needs Python 3.12 or newer; macOS's python3 is 3.9
 source .venv/bin/activate         # needed in every new terminal
 pip install -r requirements-dev.txt
 make lint                         # yamllint, ansible-lint (production profile) and shellcheck
+make validate                     # kustomize + kubeconform on every kustomization.yaml (downloads the schemas)
 ```
+
+`make validate` checks the manifests against the schemas of the cluster's Kubernetes version (read from `k3s_version`) and Flux's resources against the [Datree CRDs catalog](https://github.com/datreeio/CRDs-catalog), rejecting unknown fields. CustomResourceDefinitions are skipped, since neither source has a schema for them; any other kind without a schema fails. CI pins kubeconform to v0.8.0 with a checksum.
 
 ## License
 
