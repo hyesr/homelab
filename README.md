@@ -79,6 +79,31 @@ make down        # delete the VMs and the cluster
 
 **Upgrading K3s:** change `k3s_version` and `k3s_install_script_checksum` (the command to get it is in the file) in `ansible/inventory/group_vars/k3s_cluster.yml`, and run `make provision`. The playbook upgrades the server first, then the workers one at a time (not yet exercised with a real upgrade). `make help` lists every target.
 
+## GitOps with Flux
+
+[Flux](https://fluxcd.io) v2.10.0 runs in the cluster and keeps it in step with `main`: it fetches the repository every minute and applies what is under `clusters/homelab/` whenever `main` changes (and every 10 minutes anyway). With `prune: true`, what is removed from Git is removed from the cluster too. Flux's own manifests are in `clusters/homelab/flux-system/`, so Flux manages its own installation as well.
+
+It was installed without `flux bootstrap`, which pushes straight to `main` (see [decision 4](docs/decisions.md#4-flux-for-gitops-installed-through-a-pull-request)). On a fresh cluster, with the Flux CLI installed (`brew install fluxcd/tap/flux`, the same version as the manifests):
+
+```bash
+flux check --pre                                                                  # the cluster meets Flux's requirements
+kubectl apply --server-side -f clusters/homelab/flux-system/gotk-components.yaml  # the controllers and their CRDs
+flux check                                                                        # the controllers are ready
+flux create secret git flux-system --url=ssh://git@github.com/hyesr/homelab       # an SSH key pair; prints the public key
+```
+
+Add the printed public key in the repository's **Settings → Deploy keys**, with **Allow write access** unchecked. Then:
+
+```bash
+kubectl apply --server-side -f clusters/homelab/flux-system/gotk-sync.yaml        # "fetch main, apply clusters/homelab"
+flux get sources git                                                              # flux-system: Ready, at main's latest commit
+flux get kustomizations                                                           # flux-system: Ready, same commit
+```
+
+The private key exists only in the cluster, so `make down` loses it: after a rebuild, create a new one and delete the old deploy key on GitHub. From a fork, change `url` in `gotk-sync.yaml` and the `--url` above to your repository.
+
+**Upgrading Flux:** regenerate the components with the new CLI (`flux install --export > clusters/homelab/flux-system/gotk-components.yaml`) and merge it through a pull request; Flux applies its own upgrade (not yet exercised with a real upgrade).
+
 ## Development
 
 Ansible and the linters are pinned in `requirements-dev.txt` and installed in a virtual environment, the same versions CI uses. Every pull request runs `make lint` in GitHub Actions; run the same checks locally before pushing:
