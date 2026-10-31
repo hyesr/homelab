@@ -2,7 +2,7 @@
 
 A three-node Kubernetes cluster on a Mac mini (M4, 16 GB), built entirely from code and managed with GitOps.
 
-> **Status: early stage.** The VMs, CI, the K3s cluster and GitOps with Flux work; cert-manager and the internal CA are next. This repository grows one stage at a time, and each stage is committed once it actually runs on the Mac mini. The roadmap below is ticked only for things that work.
+> **Status: early stage.** The VMs, CI, the K3s cluster, GitOps with Flux, the internal CA and the first app (a dashboard) work. This repository grows one stage at a time, and each stage is committed once it actually runs on the Mac mini. The roadmap below is ticked only for things that work.
 
 ## The plan
 
@@ -22,8 +22,8 @@ A three-node Kubernetes cluster on a Mac mini (M4, 16 GB), built entirely from c
 - [x] K3s installed on them with Ansible
 - [x] Flux installed and syncing this repository
 - [x] CI: validate the Kubernetes manifests
-- [ ] cert-manager and the internal CA
-- [ ] Homepage dashboard
+- [x] cert-manager and the internal CA
+- [x] Homepage dashboard
 - [ ] Reach the apps from the LAN
 - [ ] Pi-hole
 - [ ] Secrets with SOPS and age
@@ -103,6 +103,22 @@ flux get kustomizations                                                         
 The private key exists only in the cluster, so `make down` loses it: after a rebuild, create a new one and delete the old deploy key on GitHub. From a fork, change `url` in `gotk-sync.yaml` and the `--url` above to your repository.
 
 **Upgrading Flux:** regenerate the components with the new CLI (`flux install --export > clusters/homelab/flux-system/gotk-components.yaml`) and merge it through a pull request; Flux applies its own upgrade (not yet exercised with a real upgrade).
+
+## The dashboard
+
+Flux deploys [Homepage](https://gethomepage.dev) at `https://dashboard.home.arpa`, behind Traefik, with a certificate from the cluster's own CA (`homelab-ca`, created by cert-manager and limited to `home.arpa`; see decisions 5 to 7). Lima forwards ports 80 and 443 to the Mac, and only the Mac can use them, so the dashboard (which has no login yet) is not reachable from the LAN. To open it on the Mac, point the name at the Mac and trust the CA once:
+
+```bash
+echo '127.0.0.1 dashboard.home.arpa' | sudo tee -a /etc/hosts       # until a local DNS serves home.arpa
+kubectl -n cert-manager get secret homelab-ca-secret -o jsonpath='{.data.tls\.crt}' | base64 -d > ~/homelab-ca.crt
+openssl x509 -in ~/homelab-ca.crt -noout -subject -ext nameConstraints  # CN=homelab-ca, Permitted: DNS:home.arpa
+security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain-db ~/homelab-ca.crt  # your user only; asks for your password
+open https://dashboard.home.arpa
+```
+
+Safari, Chrome and macOS's own `curl` use the keychain; Firefox keeps its own list of CAs. Thanks to the name constraints, a CA you trust this way cannot vouch for any domain outside `home.arpa`. Its key lives only in the cluster, so after `make down` and `make up` there is a new CA: delete the old `homelab-ca` in Keychain Access and trust the new one.
+
+Apps add themselves to the dashboard with `gethomepage.dev/*` annotations on their Ingress; the dashboard's own config is in `apps/base/homepage/config/`.
 
 ## Development
 
